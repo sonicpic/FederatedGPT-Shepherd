@@ -3,12 +3,15 @@ from typing import List
 from tqdm import tqdm
 import fire
 import torch
-from transformers import LlamaTokenizer, LlamaForCausalLM
+from transformers import LlamaTokenizer, LlamaForCausalLM, AutoModelForCausalLM, AutoTokenizer, \
+    is_bitsandbytes_available
 from peft import (
     LoraConfig,
     get_peft_model,
     prepare_model_for_int8_training,
 )
+from transformers.utils import is_accelerate_available
+
 from fed_utils import FedAvg, client_selection, global_evaluation, GeneralClient
 import datasets
 from utils.prompter import Prompter
@@ -18,7 +21,7 @@ datasets.utils.logging.set_verbosity_error()
 
 def fl_finetune(
         # model/data params
-        global_model: str = '',
+        global_model: str = "meta-llama/Llama-2-7b-hf",
         data_path: str = './data',
         output_dir: str = './lora-shepherd/',
         # FL hyperparamas
@@ -78,6 +81,7 @@ def fl_finetune(
     ), "Please specify a --global_model, e.g. --global_modell='decapoda-research/llama-7b-hf'"
 
     data_path = os.path.join(data_path, str(num_clients))
+    # print(data_path)
     assert (os.path.exists(data_path), "Please generate the data files for each client")
 
     # set up the global model & toknizer
@@ -89,15 +93,16 @@ def fl_finetune(
     if ddp:
         device_map = {"": int(os.environ.get("LOCAL_RANK") or 0)}
         gradient_accumulation_steps = gradient_accumulation_steps // world_size
-
-    model = LlamaForCausalLM.from_pretrained(
+    print(is_accelerate_available())
+    print(is_bitsandbytes_available())
+    model = AutoModelForCausalLM.from_pretrained(
         global_model,
         load_in_8bit=True,
         torch_dtype=torch.float16,
         device_map=device_map,
     )
 
-    tokenizer = LlamaTokenizer.from_pretrained(global_model)
+    tokenizer = AutoTokenizer.from_pretrained(global_model)
     tokenizer.pad_token_id = (
         0
     )

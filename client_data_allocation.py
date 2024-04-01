@@ -6,8 +6,11 @@ import os
 import json
 import pdb
 
-num_clients = int(sys.argv[1])
-diff_quantity = int(sys.argv[2])
+# num_clients = int(sys.argv[1])
+# diff_quantity = int(sys.argv[2])
+
+num_clients = 10
+diff_quantity = 1
 
 np.random.seed(42)
 random.seed(42)
